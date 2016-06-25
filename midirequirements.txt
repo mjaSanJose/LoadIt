@@ -1,0 +1,106 @@
+
+Requirements for midi iOS App
+
+ 1) be a virtual midi destination for other iOS midi apps
+ 2) Record any midi to a file that is sent to from other iOS midi apps
+ 3) render the received midi through a Sampler AudioUnit
+
+
+
+==================================
+To be a "Client Destination" that:
+==================================
+  - Other midi software / controller apps can 'see' for their output
+
+
+Presumed MIK classes and their issues:
+--------------------------------------
+ 1) MIKMIDIClientDestinationEndpoint
+    main class allows other software apps to see 'me' as a virtual destination
+
+    offers a handler / block where all midi communication is given to 
+
+
+ 2) MIKMIDIEndpointSynthesizer
+    seemingly the 'magic' that would make playing audible midi notes while
+    acting as the virtual client destination.
+
+   pros
+   ----
+    an easy hands off way to quickly wire up audio unit rendering, and at
+    the same time be relieved of any handler block coding. 
+
+   cons
+   ----
+    1) 'takes away'/overwrites handler block supplied to ClientDestinationEndpoint 
+
+    This is a problem because (in the past) I've need access to the array of
+    MIKCommands that get fed into the handler. 
+
+    Why, so as to pull each individual command out of the array and feed it 
+    into a Sequencer by way of its method:
+                               recordMIDICommand:(MIKMIDICommand *)command
+
+    2) I cannot use this class as it 'appears' that I'd give up the ability
+       to record notes into a Sequence as a consequence of 'loosing' my handler block
+
+
+==================================================================================
+"Record" and "Play" midi notes sent by other apps to me /the /'Client Destination' 
+==================================================================================
+  - record midi messages from other software apps into a iOS file 
+ 
+ 
+Presumed MIK classes and their issues:
+--------------------------------------
+  1) MIKMIDISynthesizer
+     this class houses the Sampler AudioUnit for rendering sounds. By default 
+     the  MIKMIDISequencer  class creates a default instance of a synthesizer. 
+
+     For physical midi device connections, I would create a MIKMIDISequencer, 
+     then access its default MIKMIDISynthesizer, load my Soundfonts of choice
+     into this synthesizer object.  
+
+  2) MIKMIDISequencer
+     The Only class which offers a '--> R E C O R D' method
+     'recording' persists the given midi messages into it's internal 'Sequence'
+
+     Method to record midi notes into a Sequence: 
+            - (void)recordMIDICommand:(MIKMIDICommand *)command;
+
+  3) MIKMIDISequence
+     The Only class which offers '--> W R I T I N G  to  a   F I L E'
+     this object is the recepticle that holds an midi notes that were 'played'
+     or 'Recorded' into the Synthesizer (who holds this sequence's owning Sequencer)
+  
+     Method to persist the Sequence of midi notes to disk:
+            - (BOOL)writeToURL:(NSURL *)fileURL error:(NSError **)error;
+
+
+
+
+
+Questions:
+----------
+
+  What is a MIKMIDISynthesizerInstrument  ?
+
+     and does/can it represent a soundfont gm instrument ?
+     (e.g. does it wrap the 0 - 127 gm instrument id's) 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
