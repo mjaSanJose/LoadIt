@@ -65,6 +65,8 @@ static NSString *kDefaultClientReceiveName = @"LoadItDefaultVirtualReceiver";
     return NO;
 }
 
+#pragma mark - Public  API
+
 - (void) startRecording
 {
     if (_isRecording || !_destinationEndpoint) { return; }
@@ -124,6 +126,8 @@ static NSString *kDefaultClientReceiveName = @"LoadItDefaultVirtualReceiver";
     return NO;
 }
 
+#pragma mark Synth
+
 - (BOOL) prepareSynthesizerWithSoundfont:(NSURL *)soundFontsURL
                               withPreset:(NSInteger)presetId
 {
@@ -133,6 +137,10 @@ static NSString *kDefaultClientReceiveName = @"LoadItDefaultVirtualReceiver";
     [_sequencer stop];
     _sequencer = nil;
     _sequencer = [MIKMIDISequencer sequencer];
+    
+    self.sequencer.preRoll = 0;
+    self.sequencer.clickTrackStatus = MIKMIDISequencerClickTrackStatusDisabled;
+    
     
     // grab default sequence
     // MIKMIDISequence *sequence = _sequencer.sequence;
