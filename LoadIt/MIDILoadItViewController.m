@@ -13,6 +13,7 @@
 #import "LoadItUserDefaults.h"
 #import "LoadItFileManager.h"
 #import "LoadItClientReceiveSequencer.h"
+#import "MIDIExamineFileViewController.h"
 #import "MIDILoadItViewController.h"
 
 @interface MIDILoadItViewController () <UITableViewDataSource, UITableViewDelegate>
@@ -25,6 +26,7 @@
 @property (weak, nonatomic) IBOutlet UISwitch *midiSwitch;
 @property (weak, nonatomic) IBOutlet UILabel *receiveMIDILabel;
 @property (weak, nonatomic) IBOutlet UILabel *virtualInputLabel;
+@property (weak, nonatomic) IBOutlet UIButton *examineMidiButton;
 
 @property (strong, nonatomic) NSIndexPath *chosenPhysicalIndex;
 @property (strong, nonatomic) NSIndexPath *chosenVirtualIndex;
@@ -49,6 +51,7 @@
 @property (strong, nonatomic) UIColor *cellTextColor;
 @property (strong, nonatomic) UIColor *myViewColor;
 @property (strong, nonatomic) UIColor *selectedCellColor;
+@property (strong, nonatomic) UIImage *buttonNormalClrImage;
 @end
 
 @implementation MIDILoadItViewController
@@ -128,7 +131,7 @@
     _arDevices = [NSMutableArray array];
     _arVirtualSources = [NSMutableArray array];
     _arVirtualDestinations = [NSMutableArray array];
-    
+   
     // kLoadItSoundFontChangedNotification
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(soundFontsChangeNotification:)
@@ -232,13 +235,17 @@
 {
     UIColor *clr = _tableViewColor;
     UIImage *clrImage = [self imageUsingColor:clr];
+    _buttonNormalClrImage = clrImage;
     
     [_startButton setBackgroundImage:clrImage forState:UIControlStateNormal];
     [_stopButton setBackgroundImage:clrImage forState:UIControlStateNormal];
+    [_examineMidiButton setBackgroundImage:clrImage forState:UIControlStateNormal];
+    
     [_startButton setTitleColor:_selectedCellColor forState:UIControlStateNormal];
     [_startButton setTitle:@"Start" forState:UIControlStateNormal];
     [_stopButton setTitleColor:_selectedCellColor forState:UIControlStateNormal];
     [_stopButton setTitle:@"Stop" forState:UIControlStateNormal];
+    [_examineMidiButton setTitleColor:_selectedCellColor forState:UIControlStateNormal];
     
     [_startButton.layer setMasksToBounds:YES];
     [_stopButton.layer setMasksToBounds:YES];
@@ -246,6 +253,11 @@
     _startButton.titleLabel.textColor = _selectedCellColor;
     _stopButton.titleLabel.textColor = _selectedCellColor;
     _stopButton.layer.cornerRadius = 3.;
+    
+    [_examineMidiButton.layer setMasksToBounds:YES];
+    _examineMidiButton.layer.cornerRadius = 3.;
+    _examineMidiButton.titleLabel.textColor = _selectedCellColor;
+    
 }
 
 - (UIImage *) imageUsingColor:(UIColor *)baseColor
@@ -848,6 +860,11 @@
     }
 }
 
+- (IBAction)examineMidiButtonAction:(id)sender
+{
+    [self performSegueWithIdentifier:@"MidiExamineSegue" sender:self];
+}
+
 - (void) shareButtonAction:(id)sender
 {
     LoadItFileManager *lfm = [LoadItFileManager sharedInstance];
@@ -890,6 +907,25 @@
     };
     
     [self presentViewController:sheetController animated:YES completion:nil];
+}
+
+#pragma mark - Segue Processing
+
+- (void) prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
+{
+    // grab the lone 'temporary' midi file name
+    LoadItFileManager *lfm = [LoadItFileManager sharedInstance];
+    NSURL *midiFileUrl = [lfm temporaryMidiRecordingFileURL:NO];
+    
+    if ([[segue identifier] isEqualToString:@"MidiExamineSegue"]) {
+        MIDIExamineFileViewController *destVc = segue.destinationViewController;
+        destVc.fileUrlToExamine = midiFileUrl;
+        destVc.hidesBottomBarWhenPushed = YES;
+        destVc.titleColor = _tableViewColor;
+    }
+    
+    // change from default of 'Back' to designated name of 'Home'
+    self.navigationController.navigationBar.topItem.title = @"Midi";
 }
 
 #pragma mark - User Defaults Choices

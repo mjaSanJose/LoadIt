@@ -10,10 +10,8 @@
 
 
 @interface LoadItClientReceiveSequencer : NSObject
-
 @property (nonatomic, readonly) BOOL isEngaged;
 @property (nonatomic, readonly) BOOL isRecording;
-
 
 + (instancetype) receiveSequencerWithName:(NSString *)name;
 

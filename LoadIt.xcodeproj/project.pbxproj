@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		4C04979E1D1CC614002A305F /* LoadItClientReceiveSequencer.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C04979D1D1CC614002A305F /* LoadItClientReceiveSequencer.m */; };
+		4C0497A11D278A35002A305F /* MIDIExamineFileViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C0497A01D278A35002A305F /* MIDIExamineFileViewController.m */; };
 		4C1D40801CF56E6F00C500D4 /* SoundFontProducerViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C1D407F1CF56E6F00C500D4 /* SoundFontProducerViewController.m */; };
 		4C1D40831CF56E8100C500D4 /* SoundFontInstrumentsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C1D40821CF56E8100C500D4 /* SoundFontInstrumentsViewController.m */; };
 		4C1D40861CF56E9000C500D4 /* EXS24InstrumentsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C1D40851CF56E9000C500D4 /* EXS24InstrumentsViewController.m */; };
@@ -139,6 +140,8 @@
 /* Begin PBXFileReference section */
 		4C04979C1D1CC614002A305F /* LoadItClientReceiveSequencer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LoadItClientReceiveSequencer.h; sourceTree = "<group>"; };
 		4C04979D1D1CC614002A305F /* LoadItClientReceiveSequencer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LoadItClientReceiveSequencer.m; sourceTree = "<group>"; };
+		4C04979F1D278A35002A305F /* MIDIExamineFileViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MIDIExamineFileViewController.h; sourceTree = "<group>"; };
+		4C0497A01D278A35002A305F /* MIDIExamineFileViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MIDIExamineFileViewController.m; sourceTree = "<group>"; };
 		4C1D407E1CF56E6F00C500D4 /* SoundFontProducerViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoundFontProducerViewController.h; sourceTree = "<group>"; };
 		4C1D407F1CF56E6F00C500D4 /* SoundFontProducerViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SoundFontProducerViewController.m; sourceTree = "<group>"; };
 		4C1D40811CF56E8100C500D4 /* SoundFontInstrumentsViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoundFontInstrumentsViewController.h; sourceTree = "<group>"; };
@@ -501,6 +504,8 @@
 				4C82B9031D06854000A159C3 /* MIDILoadItViewController.m */,
 				4C04979C1D1CC614002A305F /* LoadItClientReceiveSequencer.h */,
 				4C04979D1D1CC614002A305F /* LoadItClientReceiveSequencer.m */,
+				4C04979F1D278A35002A305F /* MIDIExamineFileViewController.h */,
+				4C0497A01D278A35002A305F /* MIDIExamineFileViewController.m */,
 			);
 			name = MIDI;
 			sourceTree = "<group>";
@@ -871,6 +876,7 @@
 				4C1D40831CF56E8100C500D4 /* SoundFontInstrumentsViewController.m in Sources */,
 				4CF2D1E71D06A8B300C00801 /* MIKMIDIEntity.m in Sources */,
 				4CF2D1FD1D06A8B300C00801 /* MIKMIDIMetronome.m in Sources */,
+				4C0497A11D278A35002A305F /* MIDIExamineFileViewController.m in Sources */,
 				4CF2D2031D06A8B300C00801 /* MIKMIDIPitchBendChangeCommand.m in Sources */,
 				4C71ED131CF5066000812645 /* main.m in Sources */,
 				4C1D40861CF56E9000C500D4 /* EXS24InstrumentsViewController.m in Sources */,

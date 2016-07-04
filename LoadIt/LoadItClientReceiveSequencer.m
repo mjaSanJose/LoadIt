@@ -7,6 +7,7 @@
 //
 
 #import "MIKMIDIClientDestinationEndpoint.h"
+#import "MIKMIDIEndpointSynthesizer.h"
 #import "MIKMIDISynthesizer.h"
 #import "MIKMIDISequencer.h"
 #import "MIKMIDISequence.h"
@@ -22,13 +23,15 @@ static NSString *kDefaultClientReceiveName = @"LoadItDefaultVirtualReceiver";
 @property (strong, nonatomic) NSURL *currentSoundFontsURL;
 
 @property (strong, nonatomic) MIKMIDIClientDestinationEndpoint *destinationEndpoint;
+@property (copy) MIKMIDIClientDestinationEndpointEventHandler endpointHandler;
+@property (strong, nonatomic) MIKMIDIEndpointSynthesizer *endpointSynthesizer;
+
 @property (strong, nonatomic) MIKMIDISequencer *sequencer;
-@property (weak, nonatomic) MIKMIDISynthesizer *synthesizer;
+@property (strong, nonatomic) MIKMIDISequence *sequence;
+@property (weak, nonatomic) MIKMIDITrack *oneTrack;
 
-
-@property (nonatomic) BOOL haveInformedInbound;
 @property (nonatomic, readwrite) BOOL isRecording;
-
+@property (nonatomic) BOOL haveInformedInbound;
 @end
 
 
@@ -58,6 +61,8 @@ static NSString *kDefaultClientReceiveName = @"LoadItDefaultVirtualReceiver";
     [self teardownEndpoint];
     [_sequencer stop];
     _sequencer = nil;
+    _sequence = nil;
+    _endpointSynthesizer = nil;
 }
 
 - (BOOL) isEngaged
@@ -73,8 +78,11 @@ static NSString *kDefaultClientReceiveName = @"LoadItDefaultVirtualReceiver";
     
     _isRecording = YES;
     
-    _sequencer.clickTrackStatus = MIKMIDISequencerClickTrackStatusDisabled;
-    [_sequencer startRecording];
+    [self prepareSequenceForRecording];
+    
+    if (_oneTrack) {
+        [_sequencer startRecording];
+    }
 }
 
 - (void) stopRecording
@@ -87,22 +95,28 @@ static NSString *kDefaultClientReceiveName = @"LoadItDefaultVirtualReceiver";
 
 - (MIKMIDISequence *) sequenceForSaving
 {
-    return _sequencer.sequence;
+    return _sequence;
 }
 
-- (BOOL) loadSoundFont:(NSURL *)soundFontResourceURL withPreset:(NSInteger)preset
+- (BOOL) loadSoundFont:(NSURL *)soundFontResourceURL withPreset:(NSInteger)presetId
 {
+    if (!soundFontResourceURL) { return NO; }
+    
+    
     BOOL goodLoading = NO;
     
-    if (_synthesizer && soundFontResourceURL) {
+    if (_endpointSynthesizer) {
         goodLoading  = [self loadSoundfontsAt:soundFontResourceURL
-                              intoSynthesizer:_synthesizer usingPreset:preset];
-    }
+                              intoSynthesizer:_endpointSynthesizer usingPreset:presetId];
         
+        _currentPresetId = presetId;
+        _currentSoundFontsURL = soundFontResourceURL;
+    }
+    
     return goodLoading;
 }
 
-#pragma mark - MIDI Client Receive setup
+#pragma mark - MIDI Receive setup
 
 - (void) disableReceiving
 {
@@ -112,82 +126,51 @@ static NSString *kDefaultClientReceiveName = @"LoadItDefaultVirtualReceiver";
 - (BOOL) enableReceivingWithSoundfont:(NSURL *)soundFontResourceURL
                            withPreset:(NSInteger)preset
 {
-    if (_destinationEndpoint) {
-        return NO;
-    }
-    
-    if ([self prepareSynthesizerWithSoundfont:soundFontResourceURL withPreset:preset]) {
-        [self createAndProcessClientEndpoint];
-        _haveInformedInbound = NO;
-        
-        return YES;
+    if ([self configureDestinationEndpoint]) {
+
+        return [self loadSoundFont:soundFontResourceURL withPreset:preset];
     }
     
     return NO;
 }
 
-#pragma mark Synth
+#pragma mark Sequence construction
 
-- (BOOL) prepareSynthesizerWithSoundfont:(NSURL *)soundFontsURL
-                              withPreset:(NSInteger)presetId
+- (void) prepareSequenceForRecording
 {
-    BOOL loadedSounds = NO;
-    NSError *error;
-   
-    [_sequencer stop];
-    _sequencer = nil;
-    _sequencer = [MIKMIDISequencer sequencer];
-    
-    self.sequencer.preRoll = 0;
-    self.sequencer.clickTrackStatus = MIKMIDISequencerClickTrackStatusDisabled;
-    
-    
-    // grab default sequence
-    // MIKMIDISequence *sequence = _sequencer.sequence;
-    // MIKMIDITrack *tempoTrack = sequence.tempoTrack;
-    MIKMIDITrack *firstTrack;
-
-    // Have to add at least 1 track (in addition to default tempo) then
-    // designate that track as 'record enabled', to allow recording persistence.
-    firstTrack = [self addFirstRecordTrackToSequencer:_sequencer];
-    
-    // grab the synthesize from newly added track
-    if (firstTrack) {
-        _synthesizer = [_sequencer builtinSynthesizerForTrack:firstTrack];
+    if (!_sequence) {
+        self.sequence = [MIKMIDISequence sequence];
         
-        if (presetId < 0) {
-            presetId = 0;
-        }
-        
-        loadedSounds = [self loadSoundfontsAt:soundFontsURL
-                              intoSynthesizer:_synthesizer
-                                  usingPreset:presetId];
-        if (!loadedSounds) {
-            NSLog(@"ERROR loading SoundFonts: %@", error);
-            
-            return NO;
-        }
-        _currentPresetId = presetId;
-        _currentSoundFontsURL = soundFontsURL;
+    } else if (_oneTrack) {
+        [_sequence removeTrack:_oneTrack];
+        _oneTrack = nil;
     }
     
-    return YES;
+    if (_sequencer) {
+        [_sequencer stop];
+        _sequencer.recordEnabledTracks = nil;
+        
+    } else {
+        _sequencer = [MIKMIDISequencer sequencer];
+        self.sequencer.preRoll = 0;
+        self.sequencer.clickTrackStatus = MIKMIDISequencerClickTrackStatusDisabled;
+    }
+
+    // add new track to the sequence, add same track to sequencer for recording
+    MIKMIDITrack *firstTrack = [self addTrackToSequence:_sequence];
+    if (firstTrack) {
+        _sequencer.recordEnabledTracks = [NSSet setWithArray:@[ firstTrack ]];
+        
+        self.oneTrack = firstTrack;
+    }
 }
 
-- (MIKMIDITrack *) addFirstRecordTrackToSequencer:(MIKMIDISequencer *)sequencer
+- (MIKMIDITrack *) addTrackToSequence:(MIKMIDISequence *)sequence
 {
     NSError *error;
-    MIKMIDITrack *aTrack = [sequencer.sequence addTrackWithError:&error];
-    if (aTrack) {
-        sequencer.recordEnabledTracks = [NSSet setWithArray:@[ aTrack ]];
-    }
-    
-    NSSet *recTracks = sequencer.recordEnabledTracks;
-    if (recTracks.count > 0 && !error) {
-        return aTrack;
-    }
-    
-    return nil;
+    MIKMIDITrack *aTrack = [sequence addTrackWithError:&error];
+
+    return aTrack;
 }
 
 - (BOOL) loadSoundfontsAt:(NSURL *)soundFontsURL
@@ -222,31 +205,73 @@ static NSString *kDefaultClientReceiveName = @"LoadItDefaultVirtualReceiver";
 
 #pragma mark - Endpoint (inbound) processing
 
-- (void) createAndProcessClientEndpoint
+- (void) configureEndpointHandler
 {
+    if (self.endpointHandler) { return; }
+    
     __weak LoadItClientReceiveSequencer *weakSelf = self;
     
-    _destinationEndpoint = [[MIKMIDIClientDestinationEndpoint alloc]
-                            initWithName:_myName
-                            receivedMessagesHandler:^(MIKMIDIClientDestinationEndpoint * _Nonnull destination, NSArray<MIKMIDICommand *> * _Nonnull commands)
+    self.endpointHandler = ^(MIKMIDIClientDestinationEndpoint * _Nonnull destination,
+                             NSArray<MIKMIDICommand *> * _Nonnull commands)
     {
-        if (!weakSelf.haveInformedInbound) {
-            ;
-        }
-       
-        // Cal the Synth to   "M a k e    M u s i c"
-        [weakSelf.synthesizer handleMIDIMessages:commands];
+        // call the Endpoint Synth to   "M a k e    M u s i c"
+        [weakSelf.endpointSynthesizer handleMIDIMessages:commands];
         
         if (weakSelf.isRecording) {
             for (MIKMIDICommand *oneCommand in commands) {
                 [weakSelf.sequencer recordMIDICommand:oneCommand];
             }
         }
-    }];
+    };
+}
+
+- (BOOL) configureDestinationEndpoint
+{
+    if (_destinationEndpoint && self.endpointHandler) { return YES; }
+    
+    [self configureEndpointHandler];
+    
+    _destinationEndpoint = [[MIKMIDIClientDestinationEndpoint alloc]
+                            initWithName:_myName
+                            receivedMessagesHandler:self.endpointHandler];
+    
+    if (_destinationEndpoint) {
+        [self createEndpointSynthesizerWith:_destinationEndpoint];
+    }
+    
+    return (self.destinationEndpoint && self.endpointSynthesizer);
+}
+
+- (void) createEndpointSynthesizerWith:(MIKMIDIClientDestinationEndpoint *)destEndpoint
+{
+    if (!destEndpoint) { return; }
+    
+    MIKMIDIEndpointSynthesizer *synth;
+    AudioComponentDescription samplerDesc = [self samplerComponentDescription];
+
+    synth = [MIKMIDIEndpointSynthesizer synthesizerWithClientDestinationEndpoint:destEndpoint
+                                                            componentDescription:samplerDesc];
+    // now  " ...take back my event handler !!!"
+    if (synth) {
+        destEndpoint.receivedMessagesHandler = self.endpointHandler;
+        self.endpointSynthesizer = synth;
+    }
+}
+
+- (AudioComponentDescription) samplerComponentDescription
+{
+    // Sampler Unit
+    AudioComponentDescription samplerDesc = {0};
+    samplerDesc.componentType = kAudioUnitType_MusicDevice;
+    samplerDesc.componentSubType = kAudioUnitSubType_Sampler;
+    samplerDesc.componentManufacturer = kAudioUnitManufacturer_Apple;
+    
+    return samplerDesc;
 }
 
 - (void) teardownEndpoint
 {
+    _destinationEndpoint.receivedMessagesHandler = nil;
     _destinationEndpoint = nil;
 }
 
