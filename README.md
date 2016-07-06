@@ -15,7 +15,7 @@ Essentially it achieves these goals:
 
 6. Offer visual inspection of the saved midi file
 
-7. Utilize **MIKMIDI opensource midi library** for connection and recording management
+7. Utilize [**MIKMIDI opensource midi library**](https://github.com/mixedinkey-opensource/MIKMIDI) for connection and recording management
 
 
 Example of #6:
