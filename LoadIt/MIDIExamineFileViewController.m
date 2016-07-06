@@ -262,7 +262,7 @@ static NSString *kTempoMIDITrackCellIdentifier  = @"CellIdForTempoMIDITrackSecti
         
     } else {
         NSInteger trackNo = _allTracks[(section - 1)].trackNumber;
-        sectionTitle = [NSString stringWithFormat:@"Music Track    #%ld", trackNo + 1];
+        sectionTitle = [NSString stringWithFormat:@"Music Track    #%d", trackNo + 1];
     }
     
     return sectionTitle;
@@ -542,7 +542,7 @@ static NSString *kTempoMIDITrackCellIdentifier  = @"CellIdForTempoMIDITrackSecti
                                                  andPPQ:_tempoTrack.timeResolution
                                             fillingThis:&barBeatTime];
     if (err == noErr) {
-        NSString *bar = [NSString stringWithFormat:@"%03d", barBeatTime.bar];
+        NSString *bar = [NSString stringWithFormat:@"%03d", (int)barBeatTime.bar];
         NSString *beat = [NSString stringWithFormat:@"%02d", barBeatTime.beat];
         NSString *subBeat = [NSString stringWithFormat:@"%03d", barBeatTime.subbeat];
         formattedBarBeat = [NSString stringWithFormat:@"%@:%@:%@", bar, beat, subBeat];

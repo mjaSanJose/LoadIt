@@ -710,7 +710,7 @@
     
     status = AudioUnitSetProperty(samplerUnit,
                                   kAUSamplerProperty_LoadInstrument,
-                                  kAudioUnitScope_Global,     //  <--- Yo PAIN
+                                  kAudioUnitScope_Global,
                                   0,
                                   &instrumentData,
                                   sizeof(AUSamplerInstrumentData));
@@ -967,7 +967,6 @@
     NSURL *soundFontUrl;
     
     LoadItUserDefaults *defaults = [LoadItUserDefaults sharedInstance];
-    
     soundFontUrl = [defaults retrieveSoundFontURL];
     
     return soundFontUrl;
