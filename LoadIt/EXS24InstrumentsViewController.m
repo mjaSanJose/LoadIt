@@ -140,8 +140,8 @@ NSString *kBundlePathForEXSInstruments = @"/Sampler Instruments";
     NSString *hackPath = [NSString stringWithFormat:@"%@%@/%@",
                              kBundlePathForEXSInstruments, instrumentPath, instrumentName];
     escapedHack = [hackPath stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
-    NSURL *joe = [[NSBundle mainBundle] URLForResource:escapedHack
-                                         withExtension:instrumentExt];
+    // NSURL *joe = [[NSBundle mainBundle] URLForResource:escapedHack
+    //                                     withExtension:instrumentExt];
     
     // Warning:  make   S U R E  to escape out any spaces in names, exs likes to do that
     escapedInstPath = [instDirPath stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];

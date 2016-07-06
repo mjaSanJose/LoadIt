@@ -18,7 +18,6 @@
 
 @property (weak, nonatomic) SoundFontInstrumentsViewController *instrumentsVc;
 @property (weak, nonatomic) SoundFontProducerViewController *producerVc;
-
 @property (strong, nonatomic) UIActivityIndicatorView *activityIndicator;
 @property (strong, nonatomic) PSOutputSamplerGraph *audioGraph;
 @property (strong, nonatomic) PSSoundfontLister *fontLister;
@@ -26,12 +25,12 @@
 
 @implementation SF2ViewController
 
-- (void)didReceiveMemoryWarning
+- (void) didReceiveMemoryWarning
 {
     [super didReceiveMemoryWarning];
 }
 
-- (void)viewDidLoad
+- (void) viewDidLoad
 {
     [super viewDidLoad];
     
@@ -40,31 +39,21 @@
     // just in case its not correctly turned off there, it's enforced here.
     self.automaticallyAdjustsScrollViewInsets = NO;
 
-    // 202, 219, 250
-    // 160, 181, 208   2 x Steps darker
-    
-    UIColor *c = [UIColor colorWithRed:160./255
-                                 green:181./255
-                                  blue:208./255 alpha:1.];
-    
-    self.view.backgroundColor = c;
+    self.view.backgroundColor = [UIColor colorWithRed:160./255
+                                                green:181./255
+                                                 blue:208./255 alpha:1.];
 }
 
 #pragma mark - Containers Delegate methods
 
 - (BOOL) didChooseProducerAt:(NSURL *)fullBundleUrl
 {
-    if (self.audioGraph) {
-        // prevent fat-finger double invoking
-        return NO;
-    }
+    if (self.audioGraph) { return NO; }
     
     // such a pain, need a loaded AudioUnit just to list out
     // contents of a soundfont file  ....
     PSOutputSamplerGraph *audioGraph = [PSOutputSamplerGraph samplerGraph];
-    if (![audioGraph setupAUGraphForSampling]) {
-        return NO;
-    }
+    if (![audioGraph setupAUGraphForSampling]) { return NO; }
     
     [_instrumentsVc clearTableView];
     _instrumentsVc.view.userInteractionEnabled = NO;
@@ -87,7 +76,7 @@
                           usingAudioUnit:samplerUnit
                           withCompletion:^(NSDictionary *presetsDict)
     {
-        // Feed dictionary into Instruments Presets Controller
+        // Feed dictionary into Instruments Presets ViewController
         [weakSelf.instrumentsVc fillTableFromDictionary:presetsDict];
         
         [weakSelf stopAndRemoveIndicator];
@@ -113,9 +102,7 @@
 {
     LoadItUserDefaults *defaults = [LoadItUserDefaults sharedInstance];
     [defaults storeSoundFontPresetId:presetId withName:name];
-    
-    // perhaps enable some 'buttons' that allow sample note sounding !!!!!!
-    
+
     // send out notification (recipients must go look in User Defaults)
     NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
     
@@ -129,8 +116,10 @@
 {
     LoadItUserDefaults *defaults = [LoadItUserDefaults sharedInstance];
     [defaults storeSoundFontURL:soundFontUrl];
+    
+    // upon new soundfont change, store 1st instrument until user chooses other
+    [defaults storeSoundFontPresetId:0 withName:@"First Instrument"];
 }
-
 
 #pragma mark - Activity Indicator
 

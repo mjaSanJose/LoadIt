@@ -30,13 +30,14 @@ static LoadItUserDefaults *_instance;
     });
     
     return _instance;
-    
 }
 
 - (void) storeSoundFontURL:(NSURL *)soundFontUrl
 {
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:soundFontUrl];
+    NSString *justFileName = [soundFontUrl lastPathComponent];
+    
+    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:justFileName];
     [defaults setObject:data forKey:kSoundFontURLDefaultsKey];
     [defaults synchronize];
 }
@@ -55,11 +56,16 @@ static LoadItUserDefaults *_instance;
 - (NSURL *) retrieveSoundFontURL
 {
     NSURL *soundFontUrl;
+    NSString *justFileName;
     
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     NSData *data = [defaults objectForKey:kSoundFontURLDefaultsKey];
     if (data) {
-        soundFontUrl = [NSKeyedUnarchiver unarchiveObjectWithData:data];
+        justFileName = [NSKeyedUnarchiver unarchiveObjectWithData:data];
+        justFileName = [justFileName stringByDeletingPathExtension];
+        
+        soundFontUrl = [[NSBundle mainBundle] URLForResource:justFileName
+                                               withExtension:@"sf2"];
     }
     
     return soundFontUrl;
@@ -67,7 +73,7 @@ static LoadItUserDefaults *_instance;
 
 - (NSInteger) retrievePresetId
 {
-    NSInteger presetId = -77;
+    NSInteger presetId = 0;
     
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     NSData *data = [defaults objectForKey:kSoundFontPresetIDDefaultsKey];

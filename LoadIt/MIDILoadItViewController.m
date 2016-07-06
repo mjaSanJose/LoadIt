@@ -26,8 +26,12 @@
 @property (weak, nonatomic) IBOutlet UISwitch *midiSwitch;
 @property (weak, nonatomic) IBOutlet UILabel *receiveMIDILabel;
 @property (weak, nonatomic) IBOutlet UILabel *virtualInputLabel;
-@property (weak, nonatomic) IBOutlet UIButton *examineMidiButton;
+@property (weak, nonatomic) IBOutlet UILabel *armedVirtualLabel;
 
+@property (weak, nonatomic) IBOutlet UIButton *examineMidiButton;
+@property (weak, nonatomic) IBOutlet UIView *midiReceiveView;
+
+@property (copy, nonatomic) NSString *examineMidiText;
 @property (strong, nonatomic) NSIndexPath *chosenPhysicalIndex;
 @property (strong, nonatomic) NSIndexPath *chosenVirtualIndex;
 
@@ -111,13 +115,18 @@
     
     UIColor *modifiedColor = [UIColor colorWithRed:flRed green:flGreen blue:flBlue alpha:1.];
     
-    _detailsView.backgroundColor = modifiedColor; // [UIColor clearColor];
     _detailsView.layer.cornerRadius = 3.;
+    _detailsView.backgroundColor = modifiedColor;
+   
+    _midiReceiveView.layer.cornerRadius = 3.;
+    _midiReceiveView.backgroundColor = modifiedColor;
     
     _PhysicalTableView.layer.cornerRadius = 3.;
     _PhysicalTableView.backgroundColor = modifiedColor;
     
-
+    _armedVirtualLabel.text = nil;
+    _armedVirtualLabel.textColor = _selectedCellColor;
+    
     // for some reason this label looks 'dim' and the same color is faded
     change = 31.;
     [_tableViewColor getRed:&flRed green:&flGreen blue:&flBlue alpha:&flAlpha];
@@ -175,16 +184,31 @@
         self.navigationItem.leftBarButtonItems = @[ _shareBarButton ];
         _shareBarButton.enabled = NO;
         
-        [self.view bringSubviewToFront:_receiveMIDILabel];
+        // [self.view bringSubviewToFront:_receiveMIDILabel];
         
-        [_midiSwitch setOn:NO animated:YES];
+        if ([self urlForChosenSoundfont]) {
+            _midiSwitch.enabled = YES;
+            [_midiSwitch setOn:NO animated:YES];
+            
+        } else {
+            _midiSwitch.enabled = NO;
+        }
+        
+        _examineMidiText = _examineMidiButton.titleLabel.text;
+        _armedVirtualLabel.text = nil;
         
         _viewFirstLoad = NO;
     }
+    
+    _examineMidiButton.enabled = NO;
 
     LoadItFileManager *lfm = [LoadItFileManager sharedInstance];
     if ([lfm doesFileExistAtURL:[lfm temporaryMidiRecordingFileURL:NO]]) {
         _shareBarButton.enabled = YES;
+        _examineMidiButton.enabled = YES;
+        
+    } else {
+        _examineMidiButton.titleLabel.text = @"<no midi file>";
     }
 }
 
@@ -343,6 +367,11 @@
         [self showTitleInNavigationItem:aTitle
                           usingFontSize:19.
                                andColor:nil];
+        
+    } else {
+        [self showTitleInNavigationItem:@"<No Instrument Chosen>"
+                          usingFontSize:19.
+                               andColor:[UIColor lightGrayColor]];
     }
 }
 
@@ -398,13 +427,21 @@
     }
     
     if (useThisColor) {
-        // NSDictionary *clrAttrs = @{NSForegroundColorAttributeName : useThisColor};
-        // self.navigationController.navigationBar.titleTextAttributes = clrAttrs;
         titleLabel.textColor = useThisColor;
     }
     titleLabel.text = strTitle;
     titleLabel.font = fnt;
     [titleLabel setNeedsDisplay];
+}
+
+- (void) showErrorInNavigationItem:(NSString *)errorString
+{
+    UIColor *kindOfRed = [UIColor colorWithRed:245./255
+                                         green:80./255 blue:81./255 alpha:1.];
+    
+    [self showTitleInNavigationItem:errorString
+                      usingFontSize:21.
+                           andColor:kindOfRed];
 }
 
 - (void) showDoubleTitleInNavigationItem:(NSString *)mainTitle
@@ -489,6 +526,7 @@
 - (void) soundFontsChangeNotification:(NSNotification *)notify
 {
     _soundFontsHaveChanged = YES;
+    _midiSwitch.enabled = YES;
 }
 
 #pragma mark - Table View Data Source(s)
@@ -507,9 +545,6 @@
     if ([self isPhysicalTable:tableView]) {
         cell.textLabel.text = [_arDevices[indexPath.row] name];
         
-    } else {
-        MIKMIDIDestinationEndpoint *dest = _arVirtualDestinations[indexPath.row];
-        cell.textLabel.text = dest.entity.name;
     }
     [self dealWithCellColors:cell];
  
@@ -539,7 +574,6 @@
         cell.selectedBackgroundView = selectedView;
         selectedView.tag = kSelectedBackChildTag;
     }
-    
     // attempt to cover that small beginning 1/8 " of the separator
     cell.backgroundColor = _tableViewColor;
     
@@ -636,8 +670,8 @@
     _sequencer = [MIKMIDISequencer sequencer];
     
     // grab default sequence
-    MIKMIDISequence *sequence = _sequencer.sequence;
-    MIKMIDITrack *tempoTrack = sequence.tempoTrack;
+    // MIKMIDISequence *sequence = _sequencer.sequence;
+    // MIKMIDITrack *tempoTrack = sequence.tempoTrack;
     MIKMIDITrack *firstTrack;
     // _synthesizer = [_sequencer builtinSynthesizerForTrack:tempoTrack];
     
@@ -770,14 +804,12 @@
         
         return;
     }
-    
     if (_isRecording || !_device) { return; }
     
     [self showDoubleTitleInNavigationItem:@"** Recording **" subTitle:nil mainColor:nil];
     
     _isRecording = YES;
-    
-    _sequencer.clickTrackStatus = MIKMIDISequencerClickTrackStatusDisabled;
+
     [_sequencer startRecording];
 }
 
@@ -820,9 +852,11 @@
     NSError *error;
     
     BOOL goodWrite = [sequence writeToURL:midiFileUrl error:&error];
-    if (!goodWrite || error) {
-        NSLog(@"Save MIDI file Failed with Error code: %@", @(error.code));
+    if (goodWrite) {
+        _examineMidiButton.titleLabel.text = _examineMidiText;
         
+    } else {
+        NSLog(@"Save MIDI file Failed with Error code: %@", @(error.code));
     }
 }
 
@@ -836,10 +870,9 @@
 
         [self showInstrumentNameOnlyTitle];
         _PhysicalTableView.userInteractionEnabled = YES;
-                
-    } else if (sw.isOn) {
-        BOOL good;
+        _armedVirtualLabel.text = nil;
         
+    } else if (sw.isOn) {
         // disable tableView and physical processing while virtual connection enabled
         if (_chosenPhysicalIndex) {
             // uncheck old one
@@ -852,15 +885,29 @@
             _chosenPhysicalIndex = nil;
         }
         _PhysicalTableView.userInteractionEnabled = NO;
-        
-        _virtualMidiReceiver = [LoadItClientReceiveSequencer receiveSequencerWithName:@"VirturalLoadIt"];
-        
-        good = [_virtualMidiReceiver enableReceivingWithSoundfont:[self urlForChosenSoundfont]
-                                                       withPreset:[self chosenPresetId]];
+        [self performSelector:@selector(startTheVirtualReceiver) withObject:nil afterDelay:.3];
     }
 }
 
-- (IBAction)examineMidiButtonAction:(id)sender
+- (void) startTheVirtualReceiver
+{
+    BOOL good;
+    
+    _virtualMidiReceiver = [LoadItClientReceiveSequencer receiveSequencerWithName:@"VirturalLoadIt"];
+    
+    good = [_virtualMidiReceiver enableReceivingWithSoundfont:[self urlForChosenSoundfont]
+                                                   withPreset:[self chosenPresetId]];
+    if (!good) {
+        [_virtualMidiReceiver disableReceiving];
+        [_midiSwitch setOn:NO animated:YES];
+        [self showErrorInNavigationItem:@"Soundfont Load Failed"];
+        
+    } else {
+        _armedVirtualLabel.text = @"** (Armed) **";
+    }
+}
+
+- (IBAction) examineMidiButtonAction:(id)sender
 {
     [self performSegueWithIdentifier:@"MidiExamineSegue" sender:self];
 }
@@ -938,26 +985,12 @@
     soundFontUrl = [defaults retrieveSoundFontURL];
     
     return soundFontUrl;
- 
-    // NSString *chosenSoundFont = @"CampbellsPianoBeta2";
-    
-    // Only has preset  0
-    // NSString *chosenSoundFont = @"acoustic_piano_imis_1";
-    //
-    // NSString *chosenSoundFont = @"GeneralUser GS MuseScore v1.442";
-    
-    // NSURL *soundFontUrl = [[NSBundle mainBundle] URLForResource:chosenSoundFont
-    //                                         withExtension:@"sf2"];
-    //
-    // return soundFontUrl;
 }
 
 - (NSInteger) chosenPresetId
 {
-    NSInteger presetId = -77;
-    
     LoadItUserDefaults *defaults = [LoadItUserDefaults sharedInstance];
-    presetId = [defaults retrievePresetId];
+    NSInteger presetId = [defaults retrievePresetId];
     
     return presetId;
 }
@@ -978,9 +1011,6 @@
     return connected;
 }
 
-// kAudioUnitSubType_MIDISynth
-// kAUMIDISynthProperty_EnablePreload
-
 - (BOOL) connectToSourceEndpoint:(MIKMIDISourceEndpoint *)source
 {
     NSError *error = nil;
@@ -996,36 +1026,21 @@
         [weakSelf.synthesizer handleMIDIMessages:commands];
         
         if (weakSelf.isRecording) {
-            // need to piece meal these out. Why can't Sequencer take the array
             for (MIKMIDICommand *oneCommand in commands) {
                 [weakSelf.sequencer recordMIDICommand:oneCommand];
             }
         }
-
         
-        // NSMutableString *textViewString = [self.textView.text mutableCopy];
-        NSMutableString *textViewString = [NSMutableString string];
-        
-        for (MIKMIDIChannelVoiceCommand *command in commands) {
-            if ((command.commandType | 0x0F) == MIKMIDICommandTypeSystemMessage) continue;
-            
-            // 'borrowed from example,  what the Fck is it ????
-            // [[UIApplication sharedApplication] handleMIDICommand:command];
-            
-            [textViewString appendFormat:@"Cmd: %@", command];
-            NSLog(@"Received: %@", command);
-        }
-        
-        // self.commandsLabel.text = textViewString;
     }];
-    if (!token) {
-        NSLog(@"Unable to connect to input: %@", error);
-        
-        return NO;
-    }
-    self.connectionToken = token;
     
-    return YES;
+    if (token) {
+        self.connectionToken = token;
+        
+        return YES;
+    }
+    NSLog(@"Unable to connect to input: %@", error);
+    
+    return NO;
 }
 
 - (void) disconnectFromCurrentDevice
@@ -1066,6 +1081,8 @@
         [_arDevices removeAllObjects];
         
         for (MIKMIDIDevice *dev in self.deviceManager.availableDevices) {
+            if ([dev.name isEqualToString:@"Network"]) { continue; }
+            
             if (dev.entities.count > 0) {
                 [_arDevices addObject:dev];
             }

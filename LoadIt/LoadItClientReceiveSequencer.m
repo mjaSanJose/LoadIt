@@ -152,10 +152,10 @@ static NSString *kDefaultClientReceiveName = @"LoadItDefaultVirtualReceiver";
         
     } else {
         _sequencer = [MIKMIDISequencer sequencer];
-        self.sequencer.preRoll = 0;
-        self.sequencer.clickTrackStatus = MIKMIDISequencerClickTrackStatusDisabled;
     }
-
+    self.sequencer.preRoll = 4;
+    self.sequencer.clickTrackStatus = MIKMIDISequencerClickTrackStatusEnabledOnlyInPreRoll;
+    
     // add new track to the sequence, add same track to sequencer for recording
     MIKMIDITrack *firstTrack = [self addTrackToSequence:_sequence];
     if (firstTrack) {
@@ -197,7 +197,7 @@ static NSString *kDefaultClientReceiveName = @"LoadItDefaultVirtualReceiver";
     NSLog(@"Loading SoundfontUrl: %@ for Preset: %ld",
           soundFontsURL.absoluteString, (long)preset);
     
-    CheckError(status, "Could not Load SF2 Instrument");
+    // CheckError(status, "Could not Load SF2 Instrument");
     
     return (status == noErr);
 }
