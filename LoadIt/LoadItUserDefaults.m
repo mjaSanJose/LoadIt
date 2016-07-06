@@ -101,7 +101,7 @@ static LoadItUserDefaults *_instance;
 - (void) clearSoundFontURL
 {
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    [defaults removeObjectForKey:kSoundFontPresetNameDefaultsKey];
+    [defaults removeObjectForKey:kSoundFontURLDefaultsKey];
     [defaults synchronize];
 }
 

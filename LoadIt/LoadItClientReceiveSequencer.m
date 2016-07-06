@@ -120,7 +120,9 @@ static NSString *kDefaultClientReceiveName = @"LoadItDefaultVirtualReceiver";
 
 - (void) disableReceiving
 {
-    [self teardownEndpoint];
+    // [self teardownEndpoint];
+
+    _destinationEndpoint.receivedMessagesHandler = nil;
 }
 
 - (BOOL) enableReceivingWithSoundfont:(NSURL *)soundFontResourceURL
@@ -227,16 +229,20 @@ static NSString *kDefaultClientReceiveName = @"LoadItDefaultVirtualReceiver";
 
 - (BOOL) configureDestinationEndpoint
 {
-    if (_destinationEndpoint && self.endpointHandler) { return YES; }
-    
     [self configureEndpointHandler];
     
-    _destinationEndpoint = [[MIKMIDIClientDestinationEndpoint alloc]
-                            initWithName:_myName
-                            receivedMessagesHandler:self.endpointHandler];
+    if (!_destinationEndpoint) {
+        _destinationEndpoint = [[MIKMIDIClientDestinationEndpoint alloc]
+                                initWithName:_myName
+                                receivedMessagesHandler:self.endpointHandler];
+    }
     
-    if (_destinationEndpoint) {
+    if (!_endpointSynthesizer) {
         [self createEndpointSynthesizerWith:_destinationEndpoint];
+        
+    } else {
+        // already existing, just re-establish my command handler
+        _destinationEndpoint.receivedMessagesHandler = self.endpointHandler;
     }
     
     return (self.destinationEndpoint && self.endpointSynthesizer);
@@ -251,7 +257,7 @@ static NSString *kDefaultClientReceiveName = @"LoadItDefaultVirtualReceiver";
 
     synth = [MIKMIDIEndpointSynthesizer synthesizerWithClientDestinationEndpoint:destEndpoint
                                                             componentDescription:samplerDesc];
-    // now  " ...take back my event handler !!!"
+    // " ...take back my event handler !!!"
     if (synth) {
         destEndpoint.receivedMessagesHandler = self.endpointHandler;
         self.endpointSynthesizer = synth;

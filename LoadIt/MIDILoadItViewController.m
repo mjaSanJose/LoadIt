@@ -193,24 +193,25 @@
         } else {
             _midiSwitch.enabled = NO;
         }
-        
-        _examineMidiText = _examineMidiButton.titleLabel.text;
+        _examineMidiButton.enabled = NO;
+        _examineMidiText = @"Examine MIDI File";
         _armedVirtualLabel.text = nil;
-        
         _viewFirstLoad = NO;
     }
-    
-    _examineMidiButton.enabled = NO;
+}
 
+- (void) viewDidAppear:(BOOL)animated
+{
+    [super viewDidAppear:animated];
+    
     LoadItFileManager *lfm = [LoadItFileManager sharedInstance];
     if ([lfm doesFileExistAtURL:[lfm temporaryMidiRecordingFileURL:NO]]) {
         _shareBarButton.enabled = YES;
         _examineMidiButton.enabled = YES;
-        
-    } else {
-        _examineMidiButton.titleLabel.text = @"<no midi file>";
+        _examineMidiButton.titleLabel.text = _examineMidiText;
     }
 }
+
 
 #pragma mark - Load BarButton Items
 
@@ -351,11 +352,6 @@
     UIGraphicsEndImageContext();
     
     return coloredImage;
-}
-
-- (BOOL) isPhysicalTable:(UITableView *)tv
-{
-    return tv == _PhysicalTableView ? YES:NO;
 }
 
 #pragma mark - Nav Bar Title
@@ -541,11 +537,7 @@
         cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault
                                       reuseIdentifier:cellId];
     }
-
-    if ([self isPhysicalTable:tableView]) {
-        cell.textLabel.text = [_arDevices[indexPath.row] name];
-        
-    }
+    cell.textLabel.text = [_arDevices[indexPath.row] name];
     [self dealWithCellColors:cell];
  
     return cell;
@@ -583,15 +575,7 @@
 
 - (NSInteger) tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    NSInteger rowCount = 0;
- 
-    if ([self isPhysicalTable:tableView]) {
-        rowCount = _arDevices.count;
-        
-    } else {
-        rowCount = _arVirtualDestinations.count;
-    }
-
+    NSInteger rowCount = _arDevices.count;
     return rowCount;
 }
 
@@ -609,9 +593,7 @@
 
 - (void) tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    if ([self isPhysicalTable:tableView]) {
-        [self physicalSelectionAt:indexPath];
-    }
+    [self physicalSelectionAt:indexPath];
 }
 
 - (void) physicalSelectionAt:(NSIndexPath *)indexPath
@@ -866,7 +848,6 @@
     
     if (!sw.isOn && _virtualMidiReceiver) {
         [_virtualMidiReceiver disableReceiving];
-        _virtualMidiReceiver = nil;
 
         [self showInstrumentNameOnlyTitle];
         _PhysicalTableView.userInteractionEnabled = YES;
@@ -893,7 +874,10 @@
 {
     BOOL good;
     
-    _virtualMidiReceiver = [LoadItClientReceiveSequencer receiveSequencerWithName:@"VirturalLoadIt"];
+    if (!_virtualMidiReceiver) {
+        _virtualMidiReceiver = [LoadItClientReceiveSequencer
+                                receiveSequencerWithName:@"VirturalLoadIt"];
+    }
     
     good = [_virtualMidiReceiver enableReceivingWithSoundfont:[self urlForChosenSoundfont]
                                                    withPreset:[self chosenPresetId]];
@@ -901,6 +885,7 @@
         [_virtualMidiReceiver disableReceiving];
         [_midiSwitch setOn:NO animated:YES];
         [self showErrorInNavigationItem:@"Soundfont Load Failed"];
+        _armedVirtualLabel.text = nil;
         
     } else {
         _armedVirtualLabel.text = @"** (Armed) **";
@@ -982,6 +967,7 @@
     NSURL *soundFontUrl;
     
     LoadItUserDefaults *defaults = [LoadItUserDefaults sharedInstance];
+    
     soundFontUrl = [defaults retrieveSoundFontURL];
     
     return soundFontUrl;
